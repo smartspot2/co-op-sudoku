@@ -123,6 +123,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = "interaction.User"
 
+CSRF_TRUSTED_ORIGINS = ['https://sudokuop.herokuapp.com','https://127.0.0.1']
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
