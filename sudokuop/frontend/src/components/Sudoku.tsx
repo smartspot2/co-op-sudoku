@@ -42,7 +42,7 @@ export const Sudoku = () => {
     const { gameId } = useParams();
 
     useEffect(() => {
-        const new_socket = new WebSocket(`ws://${window.location.host}/game/${gameId}/`);
+        const new_socket = new WebSocket(`wss://${window.location.host}/game/${gameId}/`);
         new_socket.onmessage = (e) => {
             const parsed = JSON.parse(e.data);
             // {board: ..., candidates: ...}
