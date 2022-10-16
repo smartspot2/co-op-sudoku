@@ -1,12 +1,13 @@
 import time
 import itertools
+import json
 
 import numpy as np
 from numpy.random import default_rng
 
 # should in theory work for arbitrary sized sudoku boards, but slow
-SIZE = 16
-BLOCK_SIZE = 4
+SIZE = 9
+BLOCK_SIZE = 3
 
 INDICES = list(itertools.product(range(SIZE), range(SIZE)))
 
@@ -18,10 +19,10 @@ class FlatBoard(object):
         self.grid = np.zeros((SIZE, SIZE))
     
     def __str__(self):
-        return str(self.grid)
+        return str(self.grid.tolist())
 
     def __repr__(self):
-        return str(self.grid)
+        return str(self.grid.tolist())
 
     def __hash__(self):
         return hash(str(self.grid))
@@ -145,6 +146,7 @@ class Game(object):
         self.views = np.zeros((self.num_players, SIZE, SIZE))
 
     def generate_views(self, overlap=2, replace=True):
+        assert 0 < overlap <= self.num_players
         self._reset_views()
         rng = default_rng()
 
@@ -171,6 +173,30 @@ class Game(object):
             j = idx % SIZE
             if n > 0:
                 self.board.set_cell(i, j, n - 1)
+    
+    def generate_new(num_players=2, view_overlap=2):
+        g = Game(num_players)
+        g.generate_views(view_overlap)
+        g.board = Board()
+
+        s = Solver(g)
+        solvable_boards = s.generate_greedy()
+        b = np.random.choice(solvable_boards)
+
+        g.board = b.copy()
+
+        return g
+    
+    def serialize_game(self, path):
+        views = [str(view.tolist()) for view in self.views.astype(np.int64)]
+        board = str(self.board.flatten())
+
+        data = {
+            'views': views,
+            'board': board
+        }
+        with open(path, 'w') as file:
+            json.dump(data, file)
 
 class Solver(object):
     def __init__(self, game: Game):
