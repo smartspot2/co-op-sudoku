@@ -31,7 +31,7 @@ for (let i = 0; i < 9; i++) {
 const KEYS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
 
 export const Sudoku = () => {
-    const [board, setBoard] = useState<number[][]>();
+    const [board, setBoard] = useState<number[][]>(BOARD);
     const [candidates, setCandidates] = useState<boolean[][][]>(CANDIDATES);
     const [view, setView] = useState<boolean[][]>(VIEW);
     const [pencilActive, setPencilActive] = useState<boolean>(false);
@@ -48,31 +48,44 @@ export const Sudoku = () => {
             // {board: ..., candidates: ...}
             const type = parsed["type"];
             if (type === "INIT") {
-                const new_view = JSON.parse(parsed["view"]);
-                setView(new_view.map(row => row.map(cell => cell ? true : false)));
+                const new_view = parsed["view"];
+                const boolView = new_view.map(row => row.map(cell => cell ? true : false));
+                setView(boolView);
             }
+            console.log({parsed});
             const new_board = parsed["board"];
             const new_candidates = parsed["candidates"];
+            const nullBoard = new_board.map(row => row.map(cell => cell === 0 ? null : parseInt(cell)));
             const boolCandidates = new_candidates.map(row => row.map(cell => cell.map(val => val ? true : false)));
-            setBoard(new_board);
+            console.log({parsed, new_board, new_candidates});
+            setBoard(nullBoard);
             setCandidates(boolCandidates);
         };
         // notify server that we've joined
-        new_socket.send(JSON.stringify({ type: "START" }));
-        setSocket(new_socket);
+        new_socket.onopen = () => {
+            new_socket.send(JSON.stringify({ type: "START" }));
+            setSocket(new_socket);
+        };
     }, []);
 
     const updateValue = (value: number, row_idx: number, col_idx: number) => {
         const new_board = board.map(row => row.slice());
         new_board[row_idx][col_idx] = value;
+        const intBoard = new_board.map(row => row.map(cell => cell === null ? 0 : cell));
         const intCandidates = candidates.map(row => row.map(cell => cell.map(val => val ? 1 : 0)));
-        socket.send(JSON.stringify({ type: "UPDATE", board: new_board, candidates: intCandidates }));
+        const sentData = JSON.stringify({ type: "UPDATE", board: intBoard, candidates: intCandidates })
+        console.log(sentData);
+        socket.send(sentData);
     };
 
     const updateCandidate = (value: number, row_idx: number, col_idx: number) => {
         const new_candidates = candidates.map(row => row.map(vals => vals.slice()));
         new_candidates[row_idx][col_idx][value - 1] = !new_candidates[row_idx][col_idx][value - 1];
-        socket.send(JSON.stringify({ type: "UPDATE", board: board, candidates: new_candidates }));
+        const intCandidates = new_candidates.map(row => row.map(cell => cell.map(val => val ? 1 : 0)));
+        const intBoard = board.map(row => row.map(cell => cell === null ? 0 : cell));
+        const sentData = JSON.stringify({ type: "UPDATE", board: intBoard, candidates: intCandidates })
+        console.log(sentData);
+        socket.send(sentData);
     };
 
     const handlePencilActiveChange = () => {

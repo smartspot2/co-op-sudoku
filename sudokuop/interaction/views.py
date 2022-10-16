@@ -22,8 +22,9 @@ def create_game(request):
                 print(f"{username} is not a user")
                 continue
             teammate_usernames.append(username)
-        sudoku_game = SudokuGame(len(teammate_usernames) + 1)
+        sudoku_game = SudokuGame.generate_new(len(teammate_usernames) + 1)
         serialized_game = sudoku_game.serialize_game()
+        print(serialized_game)
         game_object = Game(board=serialized_game['board'])
         game_object.save()
         player = Player(user=request.user, game=game_object, visibility_mask=serialized_game['views'][0])

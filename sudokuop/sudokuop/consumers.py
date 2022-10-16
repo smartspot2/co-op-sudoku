@@ -4,7 +4,7 @@ from random import randint
 from time import sleep
 import json
 
-from interaction.models import Game
+from interaction.models import Game, Player
 
 class GameConsumer(WebsocketConsumer):
 
@@ -23,19 +23,32 @@ class GameConsumer(WebsocketConsumer):
 
     # Receive message from WebSocket
     def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        board = text_data_json["board"]
-        candidates = text_data_json["candidates"]
+        self.user = self.scope["user"]
+        data = json.loads(text_data)
+        if data["type"] == "START":
+            # Send message to user
+            game = Game.objects.get(id=self.game_id)
+            board = game.board
+            candidates = game.candidates
+            player = Player.objects.get(game=game, user=self.user)
 
-        game = Game.objects.get(self.game_id)
-        game.board = board
-        game.candidates = candidates
-        game.save()
+            async_to_sync(self.channel_layer.send)(
+                self.channel_name, {"type": "game_init", "board": board, "candidates": candidates, "view": player.visibility_mask}
+            )
 
-        # Send message to room group
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, {"type": "game_move", "board": board, "candidates": candidates}
-        )
+        elif data["type"] == "UPDATE":
+            board = data["board"]
+            candidates = data["candidates"]
+
+            game = Game.objects.get(id=self.game_id)
+            game.board = board
+            game.candidates = candidates
+            game.save()
+
+            # Send message to room group
+            async_to_sync(self.channel_layer.group_send)(
+                self.game_group_name, {"type": "game_move", "board": board, "candidates": candidates}
+            )
 
 
     def disconnect(self):
@@ -44,6 +57,12 @@ class GameConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(
             self.game_group_name, self.channel_name
         )
+
+    def game_init(self, event):
+        board = json.loads(event["board"])
+        candidates = json.loads(event["candidates"])
+        view = json.loads(event["view"])
+        self.send(text_data=json.dumps({"type": "INIT", "board": board, "candidates": candidates, "view": view}))
 
     # Receive message from game group
     def game_move(self, event):
