@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.random import default_rng
 import itertools
-
 
 class Board(object):
     N = 9
@@ -26,23 +26,28 @@ class Board(object):
 
 
 class Sudoku(object):
+    N = 9
     def __init__(self, num_players=2):
         self.board = Board()
         self.num_players = num_players
-        self.views = None
+        self._reset_views()
+    
+    def _reset_views(self):
+        self.views = np.zeros((self.num_players, self.N, self.N))
 
-    def generate_views(self, n, overlap=2, replace=True):
-        from numpy.random import default_rng
-
+    def generate_views(self, overlap=2, replace=True):
+        self._reset_views()
         rng = default_rng()
-        self.views = np.zeros((n, self.N, self.N))
 
-        # every square must be seen
         for i, j in itertools.product(range(self.N), range(self.N)):
-            view_idxs = rng.choice(n, size=overlap, replace=replace)
+            view_idxs = rng.choice(self.num_players, size=overlap, replace=replace)
             self.views[view_idxs, i, j] = 1
 
+        # every square must be seen
         assert (np.sum(self.views, axis=0) > 0).all()
     
-    def _generate_toy_view(self):
-        self.views = np.ones(())
+    def generate_toy_view(self):
+        assert self.num_players == 2
+        self._reset_views()
+        self.views[0, :6, :9] = 1
+        self.views[1, 3:, :9] = 1
