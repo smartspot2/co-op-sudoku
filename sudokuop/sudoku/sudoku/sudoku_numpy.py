@@ -1,14 +1,21 @@
+import time
+import itertools
+
 import numpy as np
 from numpy.random import default_rng
-import itertools
+
+# should in theory work for arbitrary sized sudoku boards, but slow
+SIZE = 16
+BLOCK_SIZE = 4
+
+INDICES = list(itertools.product(range(SIZE), range(SIZE)))
 
 class FlatBoard(object):
     """
     Stores the state of the board in a ROW x COL grid
     """
-    N = 9
     def __init__(self):
-        self.grid = np.zeros((self.N, self.N))
+        self.grid = np.zeros((SIZE, SIZE))
     
     def __str__(self):
         return str(self.grid)
@@ -27,31 +34,30 @@ class Board(object):
     """
     Stores the state of the board in a ROW x COL x CANDIDATE grid
     """
-    N = 9
     def __init__(self):
-        self.grid = np.ones((self.N, self.N, self.N))
+        self.grid = np.ones((SIZE, SIZE, SIZE))
     
     def get_row(self, i):
         return self.grid[i, :, :]
     
     def get_row_indices(self, i):
-        return [(i, j) for j in range(self.N)]
+        return [(i, j) for j in range(SIZE)]
         
     def get_col(self, j):
         return self.grid[:, j, :]
     
     def get_col_indices(self, j):
-        return [(i, j) for i in range(self.N)]
+        return [(i, j) for i in range(SIZE)]
     
     def get_block(self, i, j):
-        i = 3 * (i // 3)
-        j = 3 * (j // 3)
-        return self.grid[i:i+3, j:j+3, :]
+        i = BLOCK_SIZE * (i // BLOCK_SIZE)
+        j = BLOCK_SIZE * (j // BLOCK_SIZE)
+        return self.grid[i:i+BLOCK_SIZE, j:j+BLOCK_SIZE, :]
     
     def get_block_indices(self, i, j):
-        i = 3 * (i // 3)
-        j = 3 * (j // 3)
-        return list(itertools.product([i, i+1, i+2], [j, j+1, j+2]))
+        i = BLOCK_SIZE * (i // BLOCK_SIZE)
+        j = BLOCK_SIZE * (j // BLOCK_SIZE)
+        return list(itertools.product(range(i, i+BLOCK_SIZE), range(j, j+BLOCK_SIZE)))
     
     def get_neighbor_indices(self, i, j):
         row_neighbors = self.get_row_indices(i)
@@ -91,7 +97,7 @@ class Board(object):
         return (self.grid.sum(axis=2) == 1).all()
 
     def reset_cell(self, row, col):
-        self.grid[row, col] = np.ones(self.N)
+        self.grid[row, col] = np.ones(SIZE)
 
     def set_cell(self, row, col, n):
         self.grid[row, col] *= 0
@@ -106,8 +112,8 @@ class Board(object):
         return np.where(self.grid[row, col] == 1)[0][0]
 
     def flatten(self):
-        flat_grid = [[0] * self.N for _ in range(self.N)]
-        for i, j in itertools.product(range(self.N), range(self.N)):
+        flat_grid = [[0] * SIZE for _ in range(SIZE)]
+        for i, j in INDICES:
             if self.cell_is_single(i, j):
                 flat_grid[i][j] = self.get_cell_value(i, j) + 1
         flat_board = FlatBoard()
@@ -130,20 +136,19 @@ class Board(object):
 
 
 class Game(object):
-    N = 9
     def __init__(self, num_players=2):
         self.num_players = num_players
         self.board = Board()
         self._reset_views()
     
     def _reset_views(self):
-        self.views = np.zeros((self.num_players, self.N, self.N))
+        self.views = np.zeros((self.num_players, SIZE, SIZE))
 
     def generate_views(self, overlap=2, replace=True):
         self._reset_views()
         rng = default_rng()
 
-        for i, j in itertools.product(range(self.N), range(self.N)):
+        for i, j in INDICES:
             view_idxs = rng.choice(self.num_players, size=overlap, replace=replace)
             self.views[view_idxs, i, j] = 1
 
@@ -160,36 +165,35 @@ class Game(object):
         from examples import solvable_1, solvable_2, unsolvable_1, unsolvable_2
         self.board = Board()
         for idx, n in enumerate(unsolvable_1['values']):
-            i = idx // self.N
-            j = idx % self.N
+            i = idx // SIZE
+            j = idx % SIZE
             if n > 0:
                 self.board.set_cell(i, j, n - 1)
 
 class Solver(object):
-    N = 9
     def __init__(self, game: Game):
         self.board = game.board.copy()
         self.views = game.views.copy()
     
     def solved(self):
-        def one_through_nine(subset):
-            subset = subset.reshape((-1, self.board.N))
+        def one_through_N(subset):
+            subset = subset.reshape((-1, SIZE))
             return (subset.sum(axis=0) == 1).all() and \
                    (subset.sum(axis=1) == 1).all()
 
         if not self.board.is_filled():
             return False
         
-        for i, j in itertools.product(range(self.N), range(self.N)):
+        for i, j in INDICES:
             row = self.board.get_row(i)
             col = self.board.get_col(j)
             block = self.board.get_block(i, j)
 
-            if not one_through_nine(row):
+            if not one_through_N(row):
                 return False
-            if not one_through_nine(col):
+            if not one_through_N(col):
                 return False
-            if not one_through_nine(block):
+            if not one_through_N(block):
                 return False
         return True
     
@@ -208,22 +212,22 @@ class Solver(object):
         while modified and attempts < 100000:
             modified = False
             for view in self.views:
-                for i, j in itertools.product(range(self.N), range(self.N)):
+                for i, j in INDICES:
                     num_removed = self.remove_matching_candidates_in_view(i, j, view)
                     modified = modified or (num_removed > 0)
             attempts += 1
         return self.solved()
     
     def backtrack_solve(self, i=0, j=0):
-        next_i = i + (j + 1) // self.N
-        next_j = (j + 1) % self.N
+        next_i = i + (j + 1) // SIZE
+        next_j = (j + 1) % SIZE
 
-        if i >= self.N:
+        if i >= SIZE:
             return True
         if self.board.cell_is_single(i, j):
             return self.backtrack_solve(next_i, next_j)
 
-        candidates = list(range(self.N))
+        candidates = list(range(SIZE))
         np.random.shuffle(candidates)
         for candidate in candidates:
             neighbors = self.board.get_neighbor_indices(i, j)
@@ -240,16 +244,18 @@ class Solver(object):
                 self.board.reset_cell(i, j)
         return False
     
-    def generate(self):
+    def generate_greedy(self, search_time_limit=30):
+        start_time = time.time()
+
         self.board = Board()
         self.backtrack_solve()
 
-        solvable_boards = []
-        solvable_flats = []
-        solvable_boards.append(self.board.copy())
-        solvable_flats.append(self.board.flatten())
+        search_start_time = time.time()
 
-        order = list(itertools.product(range(self.N), range(self.N)))
+        solvable_boards = []
+        solvable_boards.append(self.board.copy())
+
+        order = list(INDICES)
         np.random.shuffle(order)
 
         for i, j in order:
@@ -260,9 +266,14 @@ class Solver(object):
 
                 if self.iterative_solve():
                     solvable_boards.append(postreset.copy())
-                    solvable_flats.append(postreset.flatten())
                     self.board = postreset
                 else:
                     self.board = prereset
-
-        return solvable_boards, solvable_flats
+            
+            if time.time() - search_start_time > search_time_limit:
+                print('search time limit exceeded')
+                break
+        
+        print(f'backtrack time: {search_start_time - start_time:.2f} s')
+        print(f'search time: {time.time() - search_start_time:.2f} s')
+        return solvable_boards
