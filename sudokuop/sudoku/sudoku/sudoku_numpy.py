@@ -181,7 +181,8 @@ class Game(object):
 
         s = Solver(g)
         solvable_boards = s.generate_greedy()
-        b = np.random.choice(solvable_boards)
+        b = solvable_boards[-1]
+        # b = np.random.choice(solvable_boards)
 
         g.board = b.copy()
 
