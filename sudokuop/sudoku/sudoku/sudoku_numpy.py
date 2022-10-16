@@ -2,8 +2,6 @@ import numpy as np
 from numpy.random import default_rng
 import itertools
 
-from pyparsing import col
-
 class Board(object):
     """
     Stores the state of the board in a ROW x COL x CANDIDATE grid
@@ -45,11 +43,15 @@ class Board(object):
         return list(neighbors)
     
     def remove_from_cell(self, row, col, candidates):
+        num_removed = self.grid[row, col, candidates].sum()
         self.grid[row, col, candidates] = 0
+        return num_removed
 
     def remove_from_cells(self, indices, candidates):
+        num_removed = 0
         for row, col in indices:
-            self.remove_from_cell(row, col, candidates)
+            num_removed += self.remove_from_cell(row, col, candidates)
+        return num_removed
 
     def remove_from_row(self, row, candidates):
         self.grid[row, :, candidates] = 0
@@ -63,6 +65,9 @@ class Board(object):
     
     def cell_is_single(self, row, col):
         return self.grid[row, col].sum() == 1
+    
+    def is_filled(self):
+        return (self.grid.sum(axis=2) == 1).all()
 
     def set_cell(self, row, col, n):
         self.grid[row, col] *= 0
@@ -73,13 +78,21 @@ class Board(object):
         assert self.cell_is_single(row, col)
         return np.where(self.grid[row, col] == 1)[0][0]
 
+    def flatten(self):
+        flat_grid = [[0] * self.N for _ in range(self.N)]
+        for i, j in itertools.product(range(self.N), range(self.N)):
+            if self.cell_is_single(i, j):
+                flat_grid[i][j] = self.get_cell(i, j) + 1
+        return flat_grid
+
     def copy(self):
         copy = Board()
         copy.grid = self.grid.copy()
         return copy
     
     def __str__(self):
-        return str(self.grid)
+        return str(self.flatten())
+
 
 class Game(object):
     N = 9
@@ -107,7 +120,15 @@ class Game(object):
         self._reset_views()
         self.views[0, :6, :9] = 1
         self.views[1, 3:, :9] = 1
-
+    
+    def generate_toy_board(self):
+        from examples import solvable_1, unsolvable_1
+        self.board = Board()
+        for idx, n in enumerate(solvable_1['values']):
+            i = idx // self.N
+            j = idx % self.N
+            if n > 0:
+                self.board.set_cell(i, j, n - 1)
 
 class Solver(object):
     N = 9
@@ -115,10 +136,41 @@ class Solver(object):
         self.board = game.board.copy()
         self.views = game.views.copy()
     
-    def solve(self, view):
+    def solved(self):
+        def one_through_nine(subset):
+            subset = subset.reshape((-1, self.N))
+            return (subset.sum(axis=0) == 1).all() and \
+                   (subset.sum(axis=1) == 1).all()
+
+        if not self.board.is_filled():
+            return False
+        
         for i, j in itertools.product(range(self.N), range(self.N)):
-            if view[i, j] and self.board.cell_is_single(i, j):
-                index = self.board.get_cell(i, j)
-                neighbors = self.board.get_neighbor_indices(i, j)
-                self.board.remove_from_cells(neighbors, index)
+            row = self.board.get_row(i)
+            col = self.board.get_col(j)
+            block = self.board.get_block(i, j)
+
+            if not one_through_nine(row):
+                return False
+            if not one_through_nine(col):
+                return False
+            if not one_through_nine(block):
+                return False
+        return True
+    
+    def iterative_solve(self):
+        attempts = 0
+        modified = True
+        while modified and attempts < 100000:
+            modified = False
+            for view in self.views:
+                for i, j in itertools.product(range(self.N), range(self.N)):
+                    if view[i, j] and self.board.cell_is_single(i, j):
+                        index = self.board.get_cell(i, j)
+                        neighbors = self.board.get_neighbor_indices(i, j)
+                        num_removed = self.board.remove_from_cells(neighbors, index)
+                        if num_removed > 0:
+                            modified = True
+            attempts += 1
+        return self.solved()
 
