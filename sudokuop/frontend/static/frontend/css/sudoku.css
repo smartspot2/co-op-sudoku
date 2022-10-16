@@ -1,0 +1,112 @@
+/* Top level container */
+.sudoku-container {
+    width: 90vw;
+    height: 90vh;
+    margin: auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+
+    font-family: sans-serif;
+}
+
+.menu {
+    margin: auto;
+    padding: 20px;
+
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Board layout */
+
+.board {
+    display: flex;
+    flex-direction: column;
+}
+
+.board-row {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+}
+
+.board-block {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+
+    outline: 4px solid black;
+}
+
+.board-block-row {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+}
+
+.board-cell {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #eee;
+    outline: 2px solid black;
+    padding: 10px;
+
+    width: 3em;
+    height: 3em;
+}
+
+.board-cell.selected {
+    background-color: #d9e7ff;
+}
+
+.board-cell.hidden {
+    background-color: #555 !important;
+}
+
+/* large value*/
+.board-cell-content {
+    font-size: 2rem;
+}
+
+/* Candidate layout */
+.candidate-block {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    height: 100%;
+}
+
+.candidate-row {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+}
+
+.candidate-cell {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 0.85rem;
+    width: 1.5em;
+    height: 1.5em;
+}
