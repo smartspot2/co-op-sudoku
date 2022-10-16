@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 
 const BOARD: (number | null)[][] = [];
@@ -40,23 +40,36 @@ export const Sudoku = () => {
     const [view, setView] = useState<boolean[][]>(VIEW);
     const [pencilActive, setPencilActive] = useState<boolean>(false);
 
+    const [socket, setSocket] = useState<WebSocket | null>(null);
+
     const pencilCheckbox = useRef<HTMLInputElement>();
     const { gameId } = useParams();
 
+    useEffect(() => {
+        const new_socket = new WebSocket(`ws://${window.location.host}/game/${gameId}/`);
+        new_socket.onmessage = (e) => {
+            const parsed = JSON.parse(e.data);
+            // {board: ..., candidates: ...}
+            const new_board = parsed["board"];
+            const new_candidates = parsed["candidates"];
+            const boolCandidates = new_candidates.map(row => row.map(cell => cell.map(val => val ? true : false)));
+            setBoard(new_board);
+            setCandidates(boolCandidates);
+        };
+        setSocket(new_socket);
+    }, []);
+
     const updateValue = (value: number, row_idx: number, col_idx: number) => {
-        setBoard(board => {
-            const new_board = board.map(row => row.slice());
-            new_board[row_idx][col_idx] = value;
-            return new_board;
-        });
+        const new_board = board.map(row => row.slice());
+        new_board[row_idx][col_idx] = value;
+        const intCandidates = candidates.map(row => row.map(cell => cell.map(val => val ? 1 : 0)));
+        socket.send(JSON.stringify({ board: new_board, candidates: intCandidates }));
     };
 
     const updateCandidate = (value: number, row_idx: number, col_idx: number) => {
-        setCandidates(candidates => {
-            const new_candidates = candidates.map(row => row.map(vals => vals.slice()));
-            new_candidates[row_idx][col_idx][value - 1] = !new_candidates[row_idx][col_idx][value - 1];
-            return new_candidates;
-        });
+        const new_candidates = candidates.map(row => row.map(vals => vals.slice()));
+        new_candidates[row_idx][col_idx][value - 1] = !new_candidates[row_idx][col_idx][value - 1];
+        socket.send(JSON.stringify({ board: board, candidates: new_candidates }));
     };
 
     const handlePencilActiveChange = () => {
