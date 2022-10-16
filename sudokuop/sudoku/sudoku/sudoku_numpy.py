@@ -187,7 +187,7 @@ class Game(object):
 
         return g
     
-    def serialize_game(self, path):
+    def serialize_game(self):
         views = [str(view.tolist()) for view in self.views.astype(np.int64)]
         board = str(self.board.flatten())
 
@@ -195,8 +195,7 @@ class Game(object):
             'views': views,
             'board': board
         }
-        with open(path, 'w') as file:
-            json.dump(data, file)
+        return data
 
 class Solver(object):
     def __init__(self, game: Game):

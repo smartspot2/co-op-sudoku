@@ -4,31 +4,44 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import Game, User, Player
 
+from sudoku.sudoku.sudoku_numpy import Game as SudokuGame
+
 import json
 
 
 def create_game(request):
+    '''
+    create new game and create player objects for user and teammates
+    '''
     if request.method == 'POST':
         data = json.loads(request.body)
-        teammate_usernames = data.get("usernames")
-        #TODO: integrate board generation
-        new_game = Game(board="")
-        new_game.save()
-        #TODO: add board mask
-        player = Player(user=request.user, game=new_game, visibility_mask="")
-        player.save()
-        for username in teammate_usernames:
+        teammate_usernames = []
+        for username in data.get("usernames"):
             user = User.objects.get(username=username)
             if not user:
+                print(f"{username} is not a user")
                 continue
-            #TODO: add board mask
-            teammate = Player(user=user, game=new_game, visibility_mask="")
+            teammate_usernames.append(username)
+        sudoku_game = SudokuGame(len(teammate_usernames) + 1)
+        serialized_game = sudoku_game.serialize_game()
+        game_object = Game(board=serialized_game['board'])
+        game_object.save()
+        player = Player(user=request.user, game=game_object, visibility_mask=serialized_game['views'][0])
+        player.save()
+        for username, mask in zip(teammate_usernames, serialized_game['views'][1:]):
+            user = User.objects.get(username=username)
+            print(username)
+            print(user)
+            teammate = Player(user=user, game=game_object, visibility_mask=mask)
             teammate.save()
-        return JsonResponse({"id": new_game.id}, status=200)
+        return JsonResponse({"id": game_object.id}, status=200)
     return JsonResponse({"error": "invalid request method"}, status=401)
 
-#get game info for user
+
 def game_info(request):
+    '''
+    get game id's associated with user
+    '''
     if request.method == 'GET':
         user = request.user
         print(user, dir(user))
