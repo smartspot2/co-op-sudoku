@@ -5,11 +5,7 @@ const BOARD: (number | null)[][] = [];
 for (let i = 0; i < 9; i++) {
     BOARD.push([]);
     for (let j = 0; j < 9; j++) {
-        if (Math.random() < 0.2) {
-            BOARD[i].push(Math.round(Math.random() * 8 + 1));
-        } else {
-            BOARD[i].push(null);
-        }
+        BOARD[i].push(null);
     }
 }
 
@@ -19,7 +15,7 @@ for (let i = 0; i < 9; i++) {
     for (let j = 0; j < 9; j++) {
         CANDIDATES[i].push([]);
         for (let k = 0; k < 9; k++) {
-            CANDIDATES[i][j].push(Math.random() < 0.5);
+            CANDIDATES[i][j].push(false);
         }
     }
 }
@@ -28,14 +24,14 @@ const VIEW: boolean[][] = [];
 for (let i = 0; i < 9; i++) {
     VIEW.push([]);
     for (let j = 0; j < 9; j++) {
-        VIEW[i].push(Math.random() > 0.1);
+        VIEW[i].push(true);
     }
 }
 
 const KEYS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
 
 export const Sudoku = () => {
-    const [board, setBoard] = useState<number[][]>(BOARD);
+    const [board, setBoard] = useState<number[][]>();
     const [candidates, setCandidates] = useState<boolean[][][]>(CANDIDATES);
     const [view, setView] = useState<boolean[][]>(VIEW);
     const [pencilActive, setPencilActive] = useState<boolean>(false);
@@ -50,12 +46,19 @@ export const Sudoku = () => {
         new_socket.onmessage = (e) => {
             const parsed = JSON.parse(e.data);
             // {board: ..., candidates: ...}
+            const type = parsed["type"];
+            if (type === "INIT") {
+                const new_view = JSON.parse(parsed["view"]);
+                setView(new_view.map(row => row.map(cell => cell ? true : false)));
+            }
             const new_board = parsed["board"];
             const new_candidates = parsed["candidates"];
             const boolCandidates = new_candidates.map(row => row.map(cell => cell.map(val => val ? true : false)));
             setBoard(new_board);
             setCandidates(boolCandidates);
         };
+        // notify server that we've joined
+        new_socket.send(JSON.stringify({ type: "START" }));
         setSocket(new_socket);
     }, []);
 
@@ -63,13 +66,13 @@ export const Sudoku = () => {
         const new_board = board.map(row => row.slice());
         new_board[row_idx][col_idx] = value;
         const intCandidates = candidates.map(row => row.map(cell => cell.map(val => val ? 1 : 0)));
-        socket.send(JSON.stringify({ board: new_board, candidates: intCandidates }));
+        socket.send(JSON.stringify({ type: "UPDATE", board: new_board, candidates: intCandidates }));
     };
 
     const updateCandidate = (value: number, row_idx: number, col_idx: number) => {
         const new_candidates = candidates.map(row => row.map(vals => vals.slice()));
         new_candidates[row_idx][col_idx][value - 1] = !new_candidates[row_idx][col_idx][value - 1];
-        socket.send(JSON.stringify({ board: board, candidates: new_candidates }));
+        socket.send(JSON.stringify({ type: "UPDATE", board: board, candidates: new_candidates }));
     };
 
     const handlePencilActiveChange = () => {
