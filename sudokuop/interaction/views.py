@@ -30,8 +30,6 @@ def create_game(request):
         player.save()
         for username, mask in zip(teammate_usernames, serialized_game['views'][1:]):
             user = User.objects.get(username=username)
-            print(username)
-            print(user)
             teammate = Player(user=user, game=game_object, visibility_mask=mask)
             teammate.save()
         return JsonResponse({"id": game_object.id}, status=200)
