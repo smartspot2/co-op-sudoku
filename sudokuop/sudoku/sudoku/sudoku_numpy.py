@@ -156,12 +156,14 @@ class Game(object):
         assert (np.sum(self.views, axis=0) > 0).all()
     
     def generate_toy_view(self):
+        assert SIZE == 9 and BLOCK_SIZE == 3
         assert self.num_players == 2
         self._reset_views()
         self.views[0, :6, :9] = 1
         self.views[1, 3:, :9] = 1
     
     def generate_toy_board(self):
+        assert SIZE == 9 and BLOCK_SIZE == 3
         from examples import solvable_1, solvable_2, unsolvable_1, unsolvable_2
         self.board = Board()
         for idx, n in enumerate(unsolvable_1['values']):
@@ -174,6 +176,7 @@ class Solver(object):
     def __init__(self, game: Game):
         self.board = game.board.copy()
         self.views = game.views.copy()
+        self.solution = None
     
     def solved(self):
         def one_through_N(subset):
@@ -207,6 +210,7 @@ class Solver(object):
         return 0
     
     def iterative_solve(self):
+        self.solution = []
         attempts = 0
         modified = True
         while modified and attempts < 100000:
@@ -214,7 +218,9 @@ class Solver(object):
             for view in self.views:
                 for i, j in INDICES:
                     num_removed = self.remove_matching_candidates_in_view(i, j, view)
-                    modified = modified or (num_removed > 0)
+                    if num_removed > 0:
+                        modified = True
+                        self.solution.append((i, j))
             attempts += 1
         return self.solved()
     
