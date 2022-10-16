@@ -142,11 +142,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Channel settings
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "asgi_redis.RedisChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+            "hosts": [("127.0.0.1", 6379)],
         },
-        "ROUTING": "chat.routing.channel_routing",
     },
 }
 
