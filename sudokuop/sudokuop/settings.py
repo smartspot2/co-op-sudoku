@@ -29,7 +29,7 @@ SECRET_KEY = "django-insecure-#=8r$7bc8-zjr8vxx$4io8ys+bf42pekb5d)n-d(uw^0iz*j-l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["sudokuop.herokuapp.com"]
 
 load_dotenv()
 
