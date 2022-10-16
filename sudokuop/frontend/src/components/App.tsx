@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { Home } from "./Home";
+import { Lobby } from "./Lobby";
 import { Sudoku } from "./Sudoku";
 
 const App = () => {
@@ -12,7 +13,11 @@ const App = () => {
             element: <Home />
         },
         {
-            path: "/game",
+            path: "/game/lobby",
+            element: <Lobby />
+        },
+        {
+            path: "/game/play/:gameId",
             element: <Sudoku />
         }
     ]);

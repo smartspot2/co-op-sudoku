@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 
 const BOARD: (number | null)[][] = [];
 for (let i = 0; i < 9; i++) {
@@ -40,6 +41,7 @@ export const Sudoku = () => {
     const [pencilActive, setPencilActive] = useState<boolean>(false);
 
     const pencilCheckbox = useRef<HTMLInputElement>();
+    const { gameId } = useParams();
 
     const updateValue = (value: number, row_idx: number, col_idx: number) => {
         setBoard(board => {
