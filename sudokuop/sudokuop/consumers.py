@@ -51,7 +51,7 @@ class GameConsumer(WebsocketConsumer):
             )
 
 
-    def disconnect(self):
+    def disconnect(self, code):
         # when websocket disconnects
         print("disconnected",)
         async_to_sync(self.channel_layer.group_discard)(
