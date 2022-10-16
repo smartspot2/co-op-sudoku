@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		{% load static %}
+		{% if DJANGO_ENV == 'prod' %}
+			<title>Sudoku</title>
+			<link rel="stylesheet" href="{% static 'frontend/css/style.min.css' %}"/>
+		{% else %}
+			<title>Development: Sudoku</title>
+			<link rel="stylesheet" href="{% static 'frontend/css/style.css' %}"/>
+		{% endif %}
+		{% block extra_head %}
+		{% endblock %}
+	</head>
+	<body>
+		{% block body %}
+		{% endblock %}
+	</body>
+	{% block after_body %}
+	{% endblock %}
+</html>

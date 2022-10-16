@@ -1,0 +1,21 @@
+{% extends "./base.html" %}
+{% block extra_head %}
+	<!-- React and ReactDOM -->
+    {% load static %}
+	{% if DJANGO_ENV == 'prod' %}
+    <script src="{% static 'frontend/react.production.min.js' %}"></script>
+    <script src="{% static 'frontend/react-dom.production.min.js' %}"></script>
+	{% else %}
+    <script src="{% static 'frontend/react.development.js' %}"></script>
+    <script src="{% static 'frontend/react-dom.development.js' %}"></script>
+	{% endif %}
+{% endblock %}
+
+{% block body %}
+	<div id="app"><!-- React --></div>
+{% endblock %}
+
+{% block after_body %}
+    {% load static %}
+    <script src="{% static 'frontend/main.js' %}"></script>
+{% endblock %}

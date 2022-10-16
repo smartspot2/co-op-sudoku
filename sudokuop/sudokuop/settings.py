@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # extensions
     "django_extensions",
     # project apps
+    "frontend",
     "interaction",
     "sudoku"
 ]
