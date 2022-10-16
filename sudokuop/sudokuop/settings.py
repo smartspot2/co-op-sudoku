@@ -33,6 +33,11 @@ ALLOWED_HOSTS = ["sudokuop.herokuapp.com"]
 
 load_dotenv()
 
+DJANGO_ENV = os.environ.get("DJANGO_ENV", "dev")
+
+PRODUCTION = "prod"
+STAGING = "staging"
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -53,6 +58,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -133,6 +139,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+if DJANGO_ENV in (PRODUCTION, STAGING):
+    # Enables compression and caching
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    WHITENOISE_MAX_AGE = 31536000  # one year
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
