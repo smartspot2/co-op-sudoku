@@ -29,6 +29,11 @@ for (let i = 0; i < 9; i++) {
 }
 
 const KEYS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
+const ARROWS = new Map<string, readonly [number, number]>();
+ARROWS.set("ArrowLeft", [0, -1]);
+ARROWS.set("ArrowRight", [0, 1]);
+ARROWS.set("ArrowUp", [-1, 0]);
+ARROWS.set("ArrowDown", [1, 0]);
 
 export const Sudoku = () => {
     const [board, setBoard] = useState<number[][]>(BOARD);
@@ -118,6 +123,7 @@ interface BoardProps {
     updateCandidate: (value: number, row_idx: number, col_idx: number) => void;
 }
 const Board = ({ board, candidates, view, pencilActive, updateValue, updateCandidate }: BoardProps): React.ReactElement => {
+    // selected cell in the form [r, c]
     const [selectedCell, setSelectedCell] = useState<number[]>([-1, -1]);
 
     const setSelectedCellWrapper = (newSelectedCell: number[]) => {
@@ -137,6 +143,43 @@ const Board = ({ board, candidates, view, pencilActive, updateValue, updateCandi
             key = null;
         } else if (KEYS.has(e.key)) {
             key = parseInt(e.key);
+        } else if (ARROWS.has(e.key)) {
+            // arrow keys; move selected
+            const [dr, dc] = ARROWS.get(e.key);
+            setSelectedCell(([prevR, prevC]) => {
+                // clamp rows/cols
+                let newRow = Math.max(0, Math.min(board.length - 1, prevR + dr));
+                let newCol = Math.max(0, Math.min(board[0].length - 1, prevC + dc));
+                if (dr !== 0) {
+                    // change in row; keep going if hidden
+                    let tempNewRow = newRow;
+                    while (!view[tempNewRow][newCol] && 0 < tempNewRow && tempNewRow < board.length - 1) {
+                        tempNewRow = Math.max(0, Math.min(board.length - 1, tempNewRow + dr));
+                    }
+                    // possibly out of bounds and still can't find row, in which case use old value
+                    if (view[tempNewRow][newCol]) {
+                        newRow = tempNewRow;
+                    }
+                } else if (dc !== 0) {
+                    // change in col; keep going if hidden
+                    let tempNewCol = newCol;
+                    while (!view[newRow][tempNewCol] && 0 < tempNewCol && tempNewCol < board.length - 1) {
+                        tempNewCol = Math.max(0, Math.min(board[0].length - 1, tempNewCol + dc));
+                    }
+                    // possibly out of bounds and still can't find row, in which case use old value
+                    if (view[newRow][tempNewCol]) {
+                        newCol = tempNewCol;
+                    }
+                }
+                // last check; if still hidden, then don't move
+                if (!view[newRow][newCol]) {
+                    return [prevR, prevC];
+                } else {
+                    return [newRow, newCol];
+                }
+            });
+            // don't continue
+            return;
         } else {
             // ignore event
             return;
