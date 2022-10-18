@@ -1,21 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { fetchJSON, fetchWithMethod, HTTP_METHODS } from "../utils/api";
+import { useGameCreateMutation, useGameInfo } from "../queries/game";
 
 export const Lobby = () => {
-    const [currentGames, setCurrentGames] = useState<number[]>([]);
     const [inviteUsernames, setInviteUsernames] = useState<string>("");
     const navigate = useNavigate();
 
-    useEffect(() => {
-        // fetch the user's games
-        fetchJSON("/game/info").then(data => {
-            // format: {games: [id, ...]}
-            console.log(data);
-            setCurrentGames(data["games"] ?? []);
-        });
-    }, []);
+    const { data: gameInfo, error: gameInfoError, status: gameInfoStatus } = useGameInfo();
+    const [errorString, setErrorString] = useState<string>("");
+
+    const gameCreateMutation = useGameCreateMutation();
+
+    let currentGames = [];
+    switch (gameInfoStatus) {
+        case "error":
+            setErrorString(`Error: ${gameInfoError.message}`);
+            break;
+        case "success":
+            currentGames = gameInfo.games;
+            break;
+    }
 
     const handleJoinGame = (id: number) => {
         navigate(`/game/play/${id}`);
@@ -30,13 +35,11 @@ export const Lobby = () => {
         const parsed = inviteUsernames.split(",")
             .map(username => username.trim())
             .filter(username => username.length > 0);
-        fetchWithMethod("/game/create", HTTP_METHODS.POST, {
-            usernames: parsed
-        }).then(response => response.json())
-            .then((data) => {
-                const id = data.id;
-                navigate(`/game/play/${id}`)
-            });
+        gameCreateMutation.mutate({ usernames: parsed }, {
+            onSuccess: ({ id }) => {
+                navigate(`/game/play/${id}`);
+            }
+        });
     }
 
     return <div className="lobby-container">
@@ -52,6 +55,7 @@ export const Lobby = () => {
                 </div>
             </div>
         }
+        {errorString ?? <div className="error-test">{errorString}</div>}
         <div className="create-container">
             <h3>Create new game</h3>
             <label>Invite (comma-separated): <input className="invite-input" onChange={handleInviteChange} value={inviteUsernames} /></label>

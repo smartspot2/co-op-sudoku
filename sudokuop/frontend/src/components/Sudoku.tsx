@@ -41,6 +41,7 @@ export const Sudoku = () => {
     const pencilCheckbox = useRef<HTMLInputElement>();
     const { gameId } = useParams();
 
+    // set up websocket
     useEffect(() => {
         const new_socket = new WebSocket(`ws://${window.location.host}/game/${gameId}/`);
         new_socket.onmessage = (e) => {
@@ -52,12 +53,10 @@ export const Sudoku = () => {
                 const boolView = new_view.map(row => row.map(cell => cell ? true : false));
                 setView(boolView);
             }
-            console.log({parsed});
             const new_board = parsed["board"];
             const new_candidates = parsed["candidates"];
             const nullBoard = new_board.map(row => row.map(cell => cell === 0 ? null : parseInt(cell)));
             const boolCandidates = new_candidates.map(row => row.map(cell => cell.map(val => val ? true : false)));
-            console.log({parsed, new_board, new_candidates});
             setBoard(nullBoard);
             setCandidates(boolCandidates);
         };
@@ -66,6 +65,9 @@ export const Sudoku = () => {
             new_socket.send(JSON.stringify({ type: "START" }));
             setSocket(new_socket);
         };
+
+        // close on cleanup
+        return () => { new_socket.close() };
     }, []);
 
     const updateValue = (value: number, row_idx: number, col_idx: number) => {

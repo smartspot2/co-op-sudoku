@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
-import { fetchWithMethod, HTTP_METHODS } from "../utils/api";
 import { useNavigate } from "react-router-dom";
+
+import { useLoginMutation, useRegisterMutation } from "../queries/auth";
 
 export const Home = () => {
     const loginUsername = useRef<HTMLInputElement>();
@@ -10,32 +11,42 @@ export const Home = () => {
 
     const navigate = useNavigate();
 
+    const loginMutation = useLoginMutation();
+    const registerMutation = useRegisterMutation();
+
+    // log in an existing user
     const login = () => {
         const username = loginUsername.current?.value;
         if (!username) {
             setLoginError("Please enter a username.");
             return;
         }
-        fetchWithMethod("login", HTTP_METHODS.POST, {
-            username: username
-        }).then(async response => ({ ok: response.ok, json: await response.json() }))
-            .then(({ ok, json }) => {
+        loginMutation.mutate(username, {
+            onSuccess: ({ ok, json }) => {
                 if (!ok) {
-                    setLoginError(json.error)
+                    setLoginError(json.error);
                 } else {
                     navigate("/game/lobby");
                 }
-            });
+            }
+        });
     };
 
+    // register a new user
     const register = () => {
         const username = registerUsername.current?.value;
         if (!username) {
             setRegisterError("Please enter a username.");
             return;
         }
-        fetchWithMethod("register", HTTP_METHODS.POST, { username: username }).then(() => {
-            navigate("/game/lobby");
+        registerMutation.mutate(username, {
+            onSuccess: ({ ok, json }) => {
+                if (!ok) {
+                    setRegisterError(json.error);
+                } else {
+                    navigate("/game/lobby");
+                }
+            }
         });
     };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { Home } from "./Home";
 import { Lobby } from "./Lobby";
@@ -22,8 +23,12 @@ const App = () => {
         }
     ]);
 
+    const queryClient = new QueryClient();
+
     return <React.StrictMode>
-        <RouterProvider router={router} />
+        <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+        </QueryClientProvider>
     </React.StrictMode>;
 };
 export default App;
